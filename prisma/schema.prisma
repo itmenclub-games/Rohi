@@ -1,0 +1,82 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+}
+model User {
+ id String @id @default(cuid())
+ telegramId String @unique
+ username String?
+ state String @default("IDLE")
+ stateData Json?
+ createdAt DateTime @default(now())
+ deposits DepositRequest[]
+ redeems RedeemRequest[]
+ accounts GameAccountRequest[]
+ freeplays FreeplayRequest[]
+}
+model PaymentMethod {
+ id String @id @default(cuid())
+ name String
+ accountName String
+ accountNo String
+ minAmount Int @default(10)
+ active Boolean @default(true)
+ sortOrder Int @default(0)
+ deposits DepositRequest[]
+}
+model Game {
+id String @id @default(cuid())
+ name String
+ active Boolean @default(true)
+ sortOrder Int @default(0)
+}
+model DepositRequest {
+ id String @id @default(cuid())
+ requestNo String @unique
+ userId String
+ methodId String
+ amount Int
+ screenshot String
+ status String @default("PENDING")
+ rejectReason String?
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id])
+ method PaymentMethod @relation(fields:[methodId],references:[id])
+}
+model RedeemRequest {
+id String @id @default(cuid())
+ requestNo String @unique
+ userId String
+ gameUsername String
+ gameName String
+ amount Int
+ payoutMethod String
+ payoutAccount String
+ status String @default("PENDING")
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id])
+}
+model GameAccountRequest {
+id String @id @default(cuid())
+ requestNo String @unique
+ userId String
+ gameName String
+ preferredUsername String
+ credentials String?
+ status String @default("PENDING")
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id])
+}
+model FreeplayRequest {
+id String @id @default(cuid())
+ requestNo String @unique
+ userId String
+ gameUsername String
+ gameName String
+ status String @default("PENDING")
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id])
+}
