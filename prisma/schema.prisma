@@ -20,8 +20,8 @@ model User {
 model PaymentMethod {
  id String @id @default(cuid())
  name String
- accountName String
- accountNo String
+ accountName String?
+ accountNo String?
  minAmount Int @default(10)
  active Boolean @default(true)
  sortOrder Int @default(0)
@@ -35,36 +35,36 @@ id String @id @default(cuid())
 }
 model DepositRequest {
  id String @id @default(cuid())
- requestNo String @unique
+ requestNo String? @unique
  userId String
- methodId String
+ methodId String?
  amount Int
- screenshot String
+ screenshot String?
  status String @default("PENDING")
  rejectReason String?
  createdAt DateTime @default(now())
  user User @relation(fields:[userId],references:[id])
- method PaymentMethod @relation(fields:[methodId],references:[id])
+ method PaymentMethod? @relation(fields:[methodId],references:[id])
 }
 model RedeemRequest {
 id String @id @default(cuid())
- requestNo String @unique
+ requestNo String? @unique
  userId String
- gameUsername String
- gameName String
+ gameUsername String?
+ gameName String?
  amount Int
- payoutMethod String
- payoutAccount String
+ payoutMethod String?
+ payoutAccount String?
  status String @default("PENDING")
  createdAt DateTime @default(now())
  user User @relation(fields:[userId],references:[id])
 }
 model GameAccountRequest {
 id String @id @default(cuid())
- requestNo String @unique
+ requestNo String? @unique
  userId String
- gameName String
- preferredUsername String
+ gameName String?
+ preferredUsername String?
  credentials String?
  status String @default("PENDING")
  createdAt DateTime @default(now())
@@ -72,10 +72,10 @@ id String @id @default(cuid())
 }
 model FreeplayRequest {
 id String @id @default(cuid())
- requestNo String @unique
+ requestNo String? @unique
  userId String
- gameUsername String
- gameName String
+ gameUsername String?
+ gameName String?
  status String @default("PENDING")
  createdAt DateTime @default(now())
  user User @relation(fields:[userId],references:[id])
