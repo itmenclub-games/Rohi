@@ -7,6 +7,6 @@ COPY prisma ./prisma
 RUN npx prisma generate
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
+RUN npm run build && cp -R src/public dist/public
 EXPOSE 3000
 CMD ["sh","-c","npx prisma db push && node dist/index.js"]
