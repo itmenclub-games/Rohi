@@ -1,1 +1,338 @@
-<!doctype html><meta charset="utf-8"><title>Rohi Admin</title><style>body{font:16px Arial;max-width:1100px;margin:30px auto;background:#f5f7fb;color:#172033}h1{color:#194b8f}.card{background:white;padding:18px;margin:12px 0;border-radius:10px;box-shadow:0 2px 8px #ccd}table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}.pill{color:#a60}.bot{display:inline-block;background:#229ED9;color:#fff;text-decoration:none;padding:10px 14px;border-radius:8px;font-weight:bold}</style><h1>Rohi Admin Dashboard</h1><p>Requests refresh automatically.</p><p><a class="bot" href="https://t.me/Rohi_RB_bot?start=dashboard" target="_blank" rel="noopener">Open Telegram Bot</a></p><div id="app">Loading…</div><script>async function load(){try{let d=await fetch('/api/requests').then(x=>{if(!x.ok)throw Error();return x.json()});let html='';for(let [k,v] of Object.entries(d)){html+=`<section class=card><h2>${k} (${v.length})</h2><table><tr><th>Request</th><th>User</th><th>Details</th><th>Status</th></tr>${v.map(x=>`<tr><td>${x.requestNo}</td><td>${x.user?.username||x.user?.telegramId}</td><td>${x.gameName||x.amount||''}</td><td class=pill>${x.status}</td></tr>`).join('')}</table></section>`}document.querySelector('#app').innerHTML=html}catch{document.querySelector('#app').textContent='Unable to load requests. Refresh in a moment.'}}load();setInterval(load,10000)</script>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rohi Admin</title>
+<style>
+body{font:16px Arial;max-width:1200px;margin:30px auto;background:#f5f7fb;color:#172033}
+h1{color:#194b8f}
+.card{background:white;padding:18px;margin:12px 0;border-radius:10px;box-shadow:0 2px 8px #ccd}
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}
+.pill{padding:4px 8px;border-radius:4px;color:white;font-size:12px}
+.pill.PENDING{background:#f0ad4e}
+.pill.APPROVED{background:#5cb85c}
+.pill.REJECTED{background:#d9534f}
+.bot{display:inline-block;background:#229ED9;color:#fff;text-decoration:none;padding:10px 14px;border-radius:8px;font-weight:bold}
+button,input,select{padding:6px;margin:4px;border-radius:4px;border:1px solid #ccc}
+.tabs button{background:#eef;border:none;padding:8px 12px;cursor:pointer}
+.tabs button.active{background:#194b8f;color:white}
+.hidden{display:none}
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center}
+.modal-content{background:white;padding:20px;border-radius:10px;min-width:300px}
+</style>
+</head>
+<body>
+<h1>Rohi Admin Dashboard</h1>
+<p><a class="bot" href="https://t.me/Rohi_RB_bot?start=dashboard" target="_blank" rel="noopener">Open Telegram Bot</a></p>
+
+<div id="login-section">
+  <div class="card">
+    <h2>Login</h2>
+    <input type="password" id="admin-password" placeholder="Admin password">
+    <button onclick="doLogin()">Login</button>
+  </div>
+</div>
+
+<div id="admin-panel" class="hidden">
+  <div class="card">
+    <h2>Manage Payment Methods</h2>
+    <button onclick="loadMethods()">Refresh</button>
+    <button onclick="showMethodModal()">+ Add Method</button>
+    <table id="methods-table">
+      <thead><tr><th>Name</th><th>Account</th><th>Tag</th><th>Min</th><th>Active</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Manage Games</h2>
+    <button onclick="loadGames()">Refresh</button>
+    <button onclick="showGameModal()">+ Add Game</button>
+    <table id="games-table">
+      <thead><tr><th>Name</th><th>Active</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Requests</h2>
+    <div class="tabs">
+      <button class="active" onclick="switchTab('deposits', this)">Deposits</button>
+      <button onclick="switchTab('redeems', this)">Redeems</button>
+      <button onclick="switchTab('accounts', this)">Accounts</button>
+      <button onclick="switchTab('freeplays', this)">Freeplays</button>
+    </div>
+    <table id="requests-table">
+      <thead><tr><th>Request</th><th>User</th><th>Details</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="method-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="method-modal-title">Add Payment Method</h3>
+    <input type="hidden" id="method-id">
+    <input type="text" id="method-name" placeholder="Name">
+    <input type="text" id="method-accountName" placeholder="Account Name">
+    <input type="text" id="method-accountNo" placeholder="Account No / Tag">
+    <input type="number" id="method-minAmount" placeholder="Min Amount" value="10">
+    <input type="number" id="method-sortOrder" placeholder="Sort Order" value="0">
+    <label><input type="checkbox" id="method-active" checked> Active</label>
+    <br>
+    <button onclick="saveMethod()">Save</button>
+    <button onclick="closeModal('method-modal')">Cancel</button>
+  </div>
+</div>
+
+<div id="game-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="game-modal-title">Add Game</h3>
+    <input type="hidden" id="game-id">
+    <input type="text" id="game-name" placeholder="Game Name">
+    <input type="number" id="game-sortOrder" placeholder="Sort Order" value="0">
+    <label><input type="checkbox" id="game-active" checked> Active</label>
+    <br>
+    <button onclick="saveGame()">Save</button>
+    <button onclick="closeModal('game-modal')">Cancel</button>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem('rohi_admin_token') || '';
+let currentTab = 'deposits';
+
+function authHeaders() {
+  return token ? { 'x-admin-token': token } : {};
+}
+
+function doLogin() {
+  const password = document.getElementById('admin-password').value;
+  fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  })
+  .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
+  .then(d => { token = d.token; localStorage.setItem('rohi_admin_token', token); init(); })
+  .catch(e => alert('Login failed: ' + (e.error || 'Invalid password')));
+}
+
+function init() {
+  if (!token) return;
+  document.getElementById('login-section').classList.add('hidden');
+  document.getElementById('admin-panel').classList.remove('hidden');
+  loadMethods();
+  loadGames();
+  loadRequests();
+}
+
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadRequests();
+}
+
+function loadMethods() {
+  fetch('/api/admin/methods', { headers: authHeaders() })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      const tbody = document.querySelector('#methods-table tbody');
+      tbody.innerHTML = data.map(m => `<tr>
+        <td>${m.name}</td>
+        <td>${m.accountName || ''}</td>
+        <td>${m.accountNo || ''}</td>
+        <td>${m.minAmount}</td>
+        <td>${m.active ? 'Yes' : 'No'}</td>
+        <td>
+          <button onclick="editMethod('${m.id}')">Edit</button>
+          <button onclick="deleteMethod('${m.id}')">Delete</button>
+        </td>
+      </tr>`).join('');
+    })
+    .catch(() => alert('Failed to load methods'));
+}
+
+function loadGames() {
+  fetch('/api/admin/games', { headers: authHeaders() })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      const tbody = document.querySelector('#games-table tbody');
+      tbody.innerHTML = data.map(g => `<tr>
+        <td>${g.name}</td>
+        <td>${g.active ? 'Yes' : 'No'}</td>
+        <td>
+          <button onclick="editGame('${g.id}')">Edit</button>
+          <button onclick="deleteGame('${g.id}')">Delete</button>
+        </td>
+      </tr>`).join('');
+    })
+    .catch(() => alert('Failed to load games'));
+}
+
+function loadRequests() {
+  fetch('/api/admin/requests?type=' + currentTab, { headers: authHeaders() })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      const list = data[currentTab] || [];
+      const tbody = document.querySelector('#requests-table tbody');
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="5">No requests</td></tr>'; return; }
+      tbody.innerHTML = list.map((r: any) => {
+        let details = '';
+        if (currentTab === 'deposits') details = `${r.amount || ''} ${r.method ? r.method.name : ''} ${r.screenshot ? '[Screenshot]' : ''}`;
+        else if (currentTab === 'redeems') details = `${r.gameName || ''} ${r.amount || ''} ${r.payoutMethod || ''}`;
+        else if (currentTab === 'accounts') details = `${r.gameName || ''} ${r.preferredUsername || ''}`;
+        else if (currentTab === 'freeplays') details = `${r.gameName || ''} ${r.gameUsername || ''}`;
+        return `<tr>
+          <td>${r.requestNo || r.id.slice(0,8)}</td>
+          <td>${r.user?.username || r.user?.telegramId}</td>
+          <td>${details}</td>
+          <td><span class="pill ${r.status}">${r.status}</span></td>
+          <td>
+            <button onclick="updateStatus('${r.id}', 'APPROVED')">Approve</button>
+            <button onclick="updateStatus('${r.id}', 'REJECTED')">Reject</button>
+            ${currentTab === 'deposits' && r.status === 'REJECTED' ? `<br><input id="reason-${r.id}" placeholder="Reason"><button onclick="updateStatus('${r.id}', 'REJECTED', true)">Save Reason</button>` : ''}
+          </td>
+        </tr>`;
+      }).join('');
+    })
+    .catch(() => alert('Failed to load requests'));
+}
+
+function updateStatus(id, status, withReason) {
+  const body: any = { status };
+  if (withReason) {
+    const reasonInput = document.getElementById('reason-' + id);
+    body.rejectReason = reasonInput ? reasonInput.value : '';
+  }
+  fetch('/api/admin/requests/' + currentTab + '/' + id + '/status', {
+    method: 'POST',
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(() => loadRequests())
+  .catch(() => alert('Failed to update status'));
+}
+
+function showMethodModal() {
+  document.getElementById('method-id').value = '';
+  document.getElementById('method-name').value = '';
+  document.getElementById('method-accountName').value = '';
+  document.getElementById('method-accountNo').value = '';
+  document.getElementById('method-minAmount').value = '10';
+  document.getElementById('method-sortOrder').value = '0';
+  document.getElementById('method-active').checked = true;
+  document.getElementById('method-modal-title').textContent = 'Add Payment Method';
+  document.getElementById('method-modal').classList.remove('hidden');
+}
+
+function editMethod(id) {
+  fetch('/api/admin/methods', { headers: authHeaders() })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      const m = data.find((x: any) => x.id === id);
+      if (!m) return;
+      document.getElementById('method-id').value = m.id;
+      document.getElementById('method-name').value = m.name;
+      document.getElementById('method-accountName').value = m.accountName || '';
+      document.getElementById('method-accountNo').value = m.accountNo || '';
+      document.getElementById('method-minAmount').value = m.minAmount;
+      document.getElementById('method-sortOrder').value = m.sortOrder;
+      document.getElementById('method-active').checked = m.active;
+      document.getElementById('method-modal-title').textContent = 'Edit Payment Method';
+      document.getElementById('method-modal').classList.remove('hidden');
+    });
+}
+
+function saveMethod() {
+  const id = document.getElementById('method-id').value;
+  const body = {
+    name: document.getElementById('method-name').value,
+    accountName: document.getElementById('method-accountName').value,
+    accountNo: document.getElementById('method-accountNo').value,
+    minAmount: Number(document.getElementById('method-minAmount').value),
+    sortOrder: Number(document.getElementById('method-sortOrder').value),
+    active: document.getElementById('method-active').checked,
+  };
+  const url = id ? '/api/admin/methods/' + id : '/api/admin/methods';
+  const method = id ? 'PUT' : 'POST';
+  fetch(url, {
+    method,
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(() => { closeModal('method-modal'); loadMethods(); })
+  .catch(() => alert('Failed to save method'));
+}
+
+function deleteMethod(id) {
+  if (!confirm('Delete this method?')) return;
+  fetch('/api/admin/methods/' + id, { method: 'DELETE', headers: authHeaders() })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(() => loadMethods())
+    .catch(() => alert('Failed to delete method'));
+}
+
+function showGameModal() {
+  document.getElementById('game-id').value = '';
+  document.getElementById('game-name').value = '';
+  document.getElementById('game-sortOrder').value = '0';
+  document.getElementById('game-active').checked = true;
+  document.getElementById('game-modal-title').textContent = 'Add Game';
+  document.getElementById('game-modal').classList.remove('hidden');
+}
+
+function editGame(id) {
+  fetch('/api/admin/games', { headers: authHeaders() })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      const g = data.find((x: any) => x.id === id);
+      if (!g) return;
+      document.getElementById('game-id').value = g.id;
+      document.getElementById('game-name').value = g.name;
+      document.getElementById('game-sortOrder').value = g.sortOrder;
+      document.getElementById('game-active').checked = g.active;
+      document.getElementById('game-modal-title').textContent = 'Edit Game';
+      document.getElementById('game-modal').classList.remove('hidden');
+    });
+}
+
+function saveGame() {
+  const id = document.getElementById('game-id').value;
+  const body = {
+    name: document.getElementById('game-name').value,
+    sortOrder: Number(document.getElementById('game-sortOrder').value),
+    active: document.getElementById('game-active').checked,
+  };
+  const url = id ? '/api/admin/games/' + id : '/api/admin/games';
+  const method = id ? 'PUT' : 'POST';
+  fetch(url, {
+    method,
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(() => { closeModal('game-modal'); loadGames(); })
+  .catch(() => alert('Failed to save game'));
+}
+
+function deleteGame(id) {
+  if (!confirm('Delete this game?')) return;
+  fetch('/api/admin/games/' + id, { method: 'DELETE', headers: authHeaders() })
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(() => loadGames())
+    .catch(() => alert('Failed to delete game'));
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+if (token) init();
+</script>
+</body>
+</html>
