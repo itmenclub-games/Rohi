@@ -99,4 +99,3 @@ try {
   console.error('Stack trace:', (error as Error).stack);
   process.exit(1);
 }
-
