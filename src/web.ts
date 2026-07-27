@@ -8,6 +8,13 @@ export function createApp(): express.Application {
   app.use(express.json());
   app.use(express.static(path.join(__dirname, 'public')));
 
+  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error('Unhandled error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin';
 
   function adminAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -153,6 +160,11 @@ export function createApp(): express.Application {
   });
 
   const port = Number(process.env.PORT) || 3000;
-  app.listen(port, '0.0.0.0', () => console.log('Rohi live'));
-  return app;
+  return { app, port };
+}
+
+export function startServer(app: express.Application, port: number) {
+  const server = app.listen(port, '0.0.0.0', () => console.log(`Rohi live on port ${port}`));
+  server.on('error', (e: any) => console.error('Server error:', e));
+  return server;
 }
