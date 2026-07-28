@@ -9,4 +9,4 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build && cp -R src/public dist/public
 EXPOSE 3000
-CMD ["sh","-c","npx prisma db push && node dist/index.js"]
+CMD ["node", "dist/index.js"]
