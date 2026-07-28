@@ -2,14 +2,12 @@
 import { Bot, InlineKeyboard, session } from 'grammy';
 import { db } from './db';
 
-type SessionState = {
-  step: string;
-  data: Record<string, any>;
-};
-
 export interface BotContext {
   from?: any;
-  session: SessionState;
+  session: {
+    step: string;
+    data: Record<string, any>;
+  };
 }
 
 export function createBot(token: string | undefined): Bot<BotContext> | null {
@@ -18,8 +16,11 @@ export function createBot(token: string | undefined): Bot<BotContext> | null {
   const bot = new Bot<BotContext>(token);
 
   bot.use(
-    session<BotContext, SessionState>({
-      initial: (): SessionState => ({ step: 'IDLE', data: {} }),
+    session<BotContext>({
+      initial: (): { step: string; data: Record<string, any> } => ({
+        step: 'IDLE',
+        data: {},
+      }),
     })
   );
 
@@ -228,4 +229,17 @@ export function createBot(token: string | undefined): Bot<BotContext> | null {
 
   bot.catch((e) => console.error(e));
   return bot;
+}
+
+export function setupWebhook(bot: Bot<BotContext>, app: any) {
+  const webhookPath = process.env.WEBHOOK_PATH || '/api/telegram/webhook';
+  app.post(webhookPath, (req: any, res: any) => {
+    bot.handleUpdate(req.body, res).catch((e: any) => {
+      console.error('Webhook error:', e);
+      if (!res.headersSent) {
+        res.status(500).send('Internal Server Error');
+      }
+    });
+  });
+  return webhookPath;
 }
