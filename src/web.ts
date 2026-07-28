@@ -3,7 +3,7 @@ import express from 'express';
 import path from 'path';
 import { db } from './db';
 
-export function createApp(): express.Application {
+export function createApp(): { app: express.Application; port: number } {
   const app = express();
   app.use(express.json());
   app.use(express.static(path.join(__dirname, 'public')));
