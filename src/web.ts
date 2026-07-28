@@ -159,7 +159,8 @@ export function createApp(): { app: express.Application; port: number } {
     res.json({ ok: true });
   });
 
-  return app;
+  const port = Number(process.env.PORT) || 3000;
+  return { app, port };
 }
 
 export function startServer(app: express.Application, port: number) {

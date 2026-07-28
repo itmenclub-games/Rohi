@@ -1,6 +1,6 @@
 // @ts-nocheck
 import 'dotenv/config';
-import { createBot, setupWebhook } from './bot';
+import { createBot } from './bot';
 import { createApp, startServer } from './web';
 
 console.log('=== ROHI BOT STARTUP ===');
@@ -38,11 +38,6 @@ try {
   const { app, port } = createApp();
   console.log('Web app initialized');
 
-  if (bot) {
-    setupWebhook(bot, app);
-    console.log('Webhook endpoint configured');
-  }
-
   const server = startServer(app, port);
   console.log(`Server running on port ${port}`);
 
@@ -76,7 +71,11 @@ try {
   console.log(`Health Check: http://localhost:${port}/api/health`);
   console.log(`API Requests: http://localhost:${port}/api/requests`);
   console.log(`Admin API: http://localhost:${port}/api/admin/methods`);
-  console.log(`Telegram Webhook: http://localhost:${port}${process.env.WEBHOOK_PATH || '/api/telegram/webhook'}`);
+  let webhookLogPath = 'api/telegram/webhook';
+  if (process.env.WEBHOOK_PATH) {
+    webhookLogPath = process.env.WEBHOOK_PATH.startsWith('/') ? process.env.WEBHOOK_PATH.slice(1) : process.env.WEBHOOK_PATH;
+  }
+  console.log(`Telegram Webhook: http://localhost:${port}/${webhookLogPath}`);
 
   console.log('\nROHI application is running successfully!');
   console.log('\n=== TESTING CHECKLIST ===');
